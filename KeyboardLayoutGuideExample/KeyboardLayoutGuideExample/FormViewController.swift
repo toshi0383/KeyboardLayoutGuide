@@ -17,7 +17,7 @@ final class FormViewController: UIViewController {
             .instantiateViewController(withIdentifier: "FormViewController") as! FormViewController
         vc.delegate = delegate
         vc.modalPresentationStyle = .formSheet
-        vc.preferredContentSize = CGSize(width: 500, height: 600)
+        vc.preferredContentSize = CGSize(width: 500, height: 400)
         return vc
     }
 
