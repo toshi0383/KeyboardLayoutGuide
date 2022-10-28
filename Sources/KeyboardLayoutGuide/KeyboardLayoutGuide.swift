@@ -117,11 +117,11 @@ open class KeyboardLayoutGuide: UILayoutGuide {
 
     @objc
     private func keyboardDidChangeFrame(_ note: Notification) {
-        guard Keyboard.shared.presentedViewController != nil else {
+        guard note.hasBottomDifference(in: owningView) else {
             return
         }
 
-        if var height = note.keyboardHeight, let duration = note.animationDuration {
+        if var height = note.keyboardHeight(in: owningView), let duration = note.animationDuration {
             if #available(iOS 11.0, *), usesSafeArea, height > 0, let bottom = owningView?.safeAreaInsets.bottom {
                 height -= bottom
             }
@@ -137,11 +137,11 @@ open class KeyboardLayoutGuide: UILayoutGuide {
 
     @objc
     private func keyboardWillChangeFrame(_ note: Notification) {
-        guard Keyboard.shared.presentedViewController == nil else {
+        guard !note.hasBottomDifference(in: owningView) else {
             return
         }
 
-        if var height = note.keyboardHeight, let duration = note.animationDuration {
+        if var height = note.keyboardHeight(in: owningView), let duration = note.animationDuration {
             if #available(iOS 11.0, *), usesSafeArea, height > 0, let bottom = owningView?.safeAreaInsets.bottom {
                 height -= bottom
             }
@@ -178,7 +178,32 @@ extension UILayoutGuide {
 }
 
 extension Notification {
-    var keyboardHeight: CGFloat? {
+
+    func hasBottomDifference(in owningView: UIView?) -> Bool {
+        guard let diff = bottomDifference(in: owningView), diff > 0 else { return false }
+        return true
+    }
+
+    func bottomDifference(in owningView: UIView?) -> CGFloat? {
+        // Factor in the non full screen views (iPad sheets)
+        if let activeWindow = UIApplication.shared.activeWindow, let owningView = owningView {
+            // Owning view's frame in the active window
+            let owningFrameInRoot = owningView.convert(owningView.frame, to: activeWindow)
+            // We have to ignore the part of the owning view that's outside of the active window
+            // (Modal presentation)
+            let intersectionFrame = activeWindow.frame.intersection(owningFrameInRoot)
+
+            let windowHeight = activeWindow.frame.height
+            let bottomDifference = windowHeight - intersectionFrame.maxY
+
+
+            return bottomDifference
+        }
+
+        return nil
+    }
+
+    func keyboardHeight(in owningView: UIView?) -> CGFloat? {
         guard let keyboardFrame = userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else {
             return nil
         }
@@ -188,18 +213,20 @@ extension Notification {
         }
 
         let keyboardMinY = keyboardFrame.cgRectValue.minY
+        let screenHeight: CGFloat = UIApplication.shared.keyWindow?.bounds.height ?? UIScreen.main.bounds.height
+        var height = screenHeight - keyboardMinY
 
-        // Weirdly enough UIKeyboardFrameEndUserInfoKey doesn't have the same behaviour
-        // in ios 10 or iOS 11 so we can't rely on v.cgRectValue.width
-        if let pvc = Keyboard.shared.presentedViewController,
-           let w = UIApplication.shared.keyWindow {
-
-            return w.convert(pvc.view.frame, from: pvc.view.superview).maxY - keyboardMinY
+        if let diff = bottomDifference(in: owningView), height > 0 {
+            height -= diff
         }
 
-        let screenHeight: CGFloat = UIApplication.shared.keyWindow?.bounds.height ?? UIScreen.main.bounds.height
+        guard height != .infinity else {
+            // When the app is running in multiple windows, it can happen that both windows are `foregroundActive`
+            // and the intersection frame's origin can become infinite as the owning view is in the other window and the app would crash.
+            return nil
+        }
 
-        return screenHeight - keyboardMinY
+        return height
     }
     
     var animationDuration: CGFloat? {

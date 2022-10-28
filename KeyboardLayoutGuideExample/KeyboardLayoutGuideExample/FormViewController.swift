@@ -17,14 +17,13 @@ final class FormViewController: UIViewController {
             .instantiateViewController(withIdentifier: "FormViewController") as! FormViewController
         vc.delegate = delegate
         vc.modalPresentationStyle = .formSheet
-        vc.preferredContentSize = CGSize(width: 500, height: 400)
+        vc.preferredContentSize = CGSize(width: 500, height: 600)
         return vc
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        Keyboard.shared.presentedViewController = self
         vStack.bottomAnchor.constraint(lessThanOrEqualTo: view.keyboardLayoutGuideNoSafeArea.topAnchor).isActive = true
 
         view.addGestureRecognizer(UITapGestureRecognizer(target: textField, action: #selector(resignFirstResponder)))
