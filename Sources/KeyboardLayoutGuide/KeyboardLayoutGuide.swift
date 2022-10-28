@@ -220,3 +220,23 @@ func isVisible(view: UIView) -> Bool {
     }
     return isVisible(view: view, inView: view.superview)
 }
+
+extension UIApplication {
+
+    // Finds the currently active window, This works similar to the
+    // deprecated `keyWindow` however it supports multi-window'd
+    // iPad apps
+    var activeWindow: UIWindow? {
+        if #available(iOS 13, *) {
+        return connectedScenes
+            .filter { $0.activationState == .foregroundActive }
+            .map { $0 as? UIWindowScene }
+            .compactMap { $0 }
+            .first?.windows
+            .first { $0.isKeyWindow }
+        } else {
+            return keyWindow
+        }
+    }
+
+}
