@@ -189,6 +189,10 @@ extension Notification {
 
         let keyboardMinY = keyboardFrame.cgRectValue.minY
 
+        if keyboardMinY == 0 {
+            return 0
+        }
+
         // Weirdly enough UIKeyboardFrameEndUserInfoKey doesn't have the same behaviour
         // in ios 10 or iOS 11 so we can't rely on v.cgRectValue.width
         if let pvc = Keyboard.shared.presentedViewController,
